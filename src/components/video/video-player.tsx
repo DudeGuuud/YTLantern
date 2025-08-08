@@ -36,16 +36,16 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
   // Get the best video format
   const getBestFormat = () => {
     if (!video.formats || video.formats.length === 0) {
-      return video.url
+      return video.url || ''
     }
-    
+
     // Prefer mp4 format with good quality
     const mp4Formats = video.formats.filter(f => f.ext === 'mp4')
     if (mp4Formats.length > 0) {
-      return mp4Formats[0].url
+      return mp4Formats[0].url || ''
     }
-    
-    return video.formats[0].url
+
+    return video.formats[0].url || ''
   }
 
   const handlePlayPause = () => {
@@ -126,6 +126,49 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
     })
   }
 
+  const handleFormatDownload = async (formatId: string, merge: boolean = false) => {
+    try {
+      const downloadUrl = `http://localhost:8080/api/download?website=${video.website}&v=${video.v}${video.p ? `&p=${video.p}` : ''}&format=${formatId}${merge ? '&merge=true' : ''}`
+
+      const response = await fetch(downloadUrl)
+      const result = await response.json()
+
+      if (result.success && result.result?.downloadSucceed) {
+        // Open download link
+        window.open(`http://localhost:8080/${result.result.dest}`, '_blank')
+        toast({
+          title: "下载开始",
+          description: "文件下载已开始",
+        })
+      } else {
+        throw new Error(result.error || '下载失败')
+      }
+    } catch (error) {
+      toast({
+        title: "下载失败",
+        description: error instanceof Error ? error.message : '下载请求失败',
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleMergedDownload = async (videoFormatId: string) => {
+    if (video.available.audios.length === 0) {
+      toast({
+        title: "无法合并",
+        description: "没有可用的音频格式进行合并",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Use the best audio format for merging
+    const bestAudio = video.best.audio || video.available.audios[0]
+    const mergedFormat = `${videoFormatId}x${bestAudio.id}`
+
+    await handleFormatDownload(mergedFormat, true)
+  }
+
   useEffect(() => {
     const video = videoRef.current
     if (video) {
@@ -158,12 +201,7 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
             </div>
           )}
           
-          {video.like_count && (
-            <div className="flex items-center space-x-1">
-              <ThumbsUp className="w-4 h-4" />
-              <span>{video.like_count.toLocaleString()}</span>
-            </div>
-          )}
+
           
           <div className="flex items-center space-x-1">
             <Clock className="w-4 h-4" />
@@ -258,25 +296,98 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
         </div>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3">
-        <Button onClick={handleDownload} className="flex items-center space-x-2">
-          <Download className="w-4 h-4" />
-          <span>下载视频</span>
-        </Button>
-        
-        <Button variant="outline" onClick={copyVideoUrl}>
-          <ExternalLink className="w-4 h-4 mr-2" />
-          复制直链
-        </Button>
-        
-        <Button variant="outline" asChild>
-          <a href={video.original_url} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="w-4 h-4 mr-2" />
-            原视频
-          </a>
-        </Button>
-      </div>
+      {/* Download Options */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">下载选项</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Video Formats */}
+          <div>
+            <h4 className="font-medium mb-2">视频格式</h4>
+            <div className="grid gap-2">
+              {video.available.videos.map((format) => (
+                <div key={format.id} className="flex items-center justify-between p-3 border rounded">
+                  <div className="flex-1">
+                    <div className="font-medium">{format.info}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {format.scale} • {format.size} MB • {format.format}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleFormatDownload(format.id, false)}
+                      className="flex items-center space-x-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span>下载</span>
+                    </Button>
+                    {video.available.audios.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleMergedDownload(format.id)}
+                        className="flex items-center space-x-1"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>合并下载</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Audio Formats */}
+          {video.available.audios.length > 0 && (
+            <div>
+              <h4 className="font-medium mb-2">音频格式</h4>
+              <div className="grid gap-2">
+                {video.available.audios.map((format) => (
+                  <div key={format.id} className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex-1">
+                      <div className="font-medium">{format.info}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {format.rate}kbps • {format.size} MB • {format.format}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleFormatDownload(format.id, false)}
+                      className="flex items-center space-x-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span>下载</span>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-3 pt-4 border-t">
+            <Button onClick={handleDownload} className="flex items-center space-x-2">
+              <Download className="w-4 h-4" />
+              <span>下载最佳质量</span>
+            </Button>
+
+            <Button variant="outline" onClick={copyVideoUrl}>
+              <ExternalLink className="w-4 h-4 mr-2" />
+              复制直链
+            </Button>
+
+            <Button variant="outline" asChild>
+              <a href={video.original_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                原视频
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Video Description */}
       {video.description && (

@@ -23,9 +23,15 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`
 }
 
+export function isValidVideoUrl(url: string): boolean {
+  const youtubeRegex = /^(https?:\/\/)?(www\.|m\.)?(youtube\.com\/(watch\?.*v=|embed\/|v\/)|youtu\.be\/)[\w-]+/
+  const bilibiliRegex = /^(https?:\/\/)?(www\.|m\.)?bilibili\.com\/video\/[\w\d]+/
+  return youtubeRegex.test(url) || bilibiliRegex.test(url)
+}
+
+// Keep the old function for backward compatibility
 export function isValidYouTubeUrl(url: string): boolean {
-  const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|v\/)|youtu\.be\/)[\w-]+/
-  return youtubeRegex.test(url)
+  return isValidVideoUrl(url)
 }
 
 export function extractVideoId(url: string): string | null {

@@ -1,5 +1,7 @@
 export interface VideoInfo {
-  id: string
+  website: string
+  v: string
+  p?: string
   title: string
   description?: string
   thumbnail: string
@@ -7,17 +9,35 @@ export interface VideoInfo {
   uploader: string
   upload_date: string
   view_count?: number
-  like_count?: number
+  best: {
+    audio: VideoFormat
+    video: VideoFormat
+  }
+  available: {
+    audios: VideoFormat[]
+    videos: VideoFormat[]
+    subs: string[]
+  }
+  // Computed properties for compatibility
+  id: string
   formats: VideoFormat[]
   url: string
   original_url: string
 }
 
 export interface VideoFormat {
-  format_id: string
-  url: string
-  ext: string
-  quality: string
+  id: string
+  format: string
+  scale?: string
+  frame?: number
+  rate: string
+  info: string
+  size: string
+  // Legacy compatibility
+  format_id?: string
+  url?: string
+  ext?: string
+  quality?: string
   filesize?: number
   fps?: number
   vcodec?: string
@@ -34,7 +54,7 @@ export interface ParseRequest {
 
 export interface ParseResponse {
   success: boolean
-  data?: VideoInfo
+  result?: VideoInfo
   error?: string
   message?: string
 }
@@ -53,7 +73,7 @@ export interface ApiError {
   status_code: number
 }
 
-export type VideoQuality = '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | 'best'
+export type VideoQuality = '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p' | 'best'
 
 export interface QualityOption {
   value: VideoQuality

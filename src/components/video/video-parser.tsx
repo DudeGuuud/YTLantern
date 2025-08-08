@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useVideoStore } from '@/store/video-store'
 import { VideoAPI } from '@/lib/api'
-import { isValidYouTubeUrl } from '@/lib/utils'
+import { isValidVideoUrl } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { QualitySelector } from './quality-selector'
 import { VideoQuality } from '@/types/video'
@@ -28,16 +28,16 @@ export function VideoParser() {
     if (!url.trim()) {
       toast({
         title: "请输入视频链接",
-        description: "请粘贴YouTube视频链接",
+        description: "请粘贴YouTube或Bilibili视频链接",
         variant: "destructive",
       })
       return
     }
 
-    if (!isValidYouTubeUrl(url)) {
+    if (!isValidVideoUrl(url)) {
       toast({
-        title: "无效的YouTube链接",
-        description: "请确保输入的是有效的YouTube视频链接",
+        title: "无效的视频链接",
+        description: "请确保输入的是有效的YouTube或Bilibili视频链接",
         variant: "destructive",
       })
       return
@@ -47,16 +47,17 @@ export function VideoParser() {
     setError(null)
 
     try {
-      const videoInfo = await VideoAPI.parseVideo({
-        url: url.trim(),
-        quality: selectedQuality === 'best' ? 'best' : 'bestvideo',
-      })
-
-      setCurrentVideo(videoInfo)
-      toast({
-        title: "解析成功",
-        description: `已成功解析视频: ${videoInfo.title}`,
-      })
+      const response = await VideoAPI.parseVideo(url.trim())
+      if (response.success && response.result) {
+        const videoInfo = response.result
+        setCurrentVideo(videoInfo)
+        toast({
+          title: "解析成功",
+          description: `已成功解析视频: ${videoInfo.title}`,
+        })
+      } else {
+        throw new Error(response.error || '解析失败')
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '解析失败'
       setError(errorMessage)
@@ -79,11 +80,11 @@ export function VideoParser() {
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText()
-      if (text && isValidYouTubeUrl(text)) {
+      if (text && isValidVideoUrl(text)) {
         setUrl(text)
         toast({
           title: "链接已粘贴",
-          description: "检测到有效的YouTube链接",
+          description: "检测到有效的视频链接",
         })
       }
     } catch (error) {
@@ -100,10 +101,10 @@ export function VideoParser() {
           <div className="flex-1 relative">
             <Input
               type="url"
-              placeholder="粘贴YouTube视频链接 (https://www.youtube.com/watch?v=...)"
+              placeholder="粘贴YouTube或Bilibili视频链接"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               disabled={isLoading}
               className="pr-10"
             />
@@ -158,7 +159,8 @@ export function VideoParser() {
             <div className="space-y-2">
               <p className="text-sm font-medium">使用说明:</p>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 支持标准YouTube链接和短链接 (youtu.be)</li>
+                <li>• 支持YouTube链接和短链接 (youtu.be)</li>
+                <li>• 支持Bilibili视频链接 (bilibili.com/video/)</li>
                 <li>• 支持播放列表中的单个视频</li>
                 <li>• 建议选择720p或以下质量以获得更好的播放体验</li>
                 <li>• 解析可能需要10-30秒，请耐心等待</li>

@@ -29,26 +29,36 @@ const qualityOptions: QualityOption[] = [
   {
     value: '360p',
     label: '360p',
-    description: '标清'
+    description: '标清流畅'
   },
   {
     value: '480p',
     label: '480p',
-    description: '高清'
+    description: '标清'
   },
   {
     value: '720p',
-    label: '720p',
+    label: '720p HD',
     description: '高清 (推荐)'
   },
   {
     value: '1080p',
-    label: '1080p',
+    label: '1080p Full HD',
     description: '全高清'
   },
   {
+    value: '1440p',
+    label: '1440p 2K',
+    description: '2K超高清'
+  },
+  {
+    value: '2160p',
+    label: '2160p 4K',
+    description: '4K超高清'
+  },
+  {
     value: 'best',
-    label: '最佳',
+    label: '最佳质量',
     description: '自动选择最佳质量'
   }
 ]
